@@ -1,6 +1,6 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import UserSerializer, LoginSerializer, LogoutSerializer
@@ -80,4 +80,17 @@ def logout_view(request):
             "errors": serializer.errors
         },
         status=status.HTTP_400_BAD_REQUEST
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def profile_view(request):
+    serializer = UserSerializer(request.user)
+    return Response(
+        {
+            "success": True,
+            "user": serializer.data
+        },
+        status=status.HTTP_200_OK
     )
