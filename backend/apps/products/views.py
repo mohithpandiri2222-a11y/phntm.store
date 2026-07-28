@@ -97,3 +97,26 @@ def update_product_view(request, pk):
         },
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_product_view(request, pk):
+    try:
+        product = Product.objects.get(id=pk)
+    except Product.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Product not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+    product.delete()
+    return Response(
+        {
+            "success": True,
+            "message": "Product deleted successfully."
+        },
+        status=status.HTTP_200_OK
+    )
