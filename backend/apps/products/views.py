@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
-from .models import Product
-from .serializers import ProductSerializer
+from .models import Product, ProductImage
+from .serializers import ProductSerializer, ProductImageSerializer, ProductImageUploadSerializer
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -119,4 +119,64 @@ def delete_product_view(request, pk):
             "message": "Product deleted successfully."
         },
         status=status.HTTP_200_OK
+    )
+
+
+@api_view(['GET', 'POST'])
+def product_images_view(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Product not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # GET — list all images (public)
+    if request.method == 'GET':
+        images = product.images.all().order_by('display_order')
+        serializer = ProductImageSerializer(images, many=True)
+        return Response(
+            {
+                "success": True,
+                "count": images.count(),
+                "images": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
+
+    # POST — upload a new image (admin only)
+    if not request.user or not request.user.is_authenticated or not request.user.is_staff:
+        return Response(
+            {"detail": "Authentication credentials were not provided."}
+            if not request.user or not request.user.is_authenticated
+            else {"detail": "You do not have permission to perform this action."},
+            status=status.HTTP_401_UNAUTHORIZED
+            if not request.user or not request.user.is_authenticated
+            else status.HTTP_403_FORBIDDEN
+        )
+
+    serializer = ProductImageUploadSerializer(data=request.data)
+    if serializer.is_valid():
+        if serializer.validated_data.get('is_primary', False):
+            ProductImage.objects.filter(product=product, is_primary=True).update(is_primary=False)
+        image_instance = serializer.save(product=product)
+        read_serializer = ProductImageSerializer(image_instance)
+        return Response(
+            {
+                "success": True,
+                "message": "Product image uploaded successfully.",
+                "image": read_serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+    return Response(
+        {
+            "success": False,
+            "errors": serializer.errors
+        },
+        status=status.HTTP_400_BAD_REQUEST
     )

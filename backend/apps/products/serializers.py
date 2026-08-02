@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Category
+from .models import Product, Category, ProductImage
 
 class ProductSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(
@@ -12,5 +12,23 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id', 'category', 'name', 'description', 'price', 'stock', 'image', 'created_at', 'updated_at')
+        fields = ('id', 'category', 'name', 'description', 'price', 'stock', 'created_at', 'updated_at')
         read_only_fields = ('id', 'created_at', 'updated_at')
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ('id', 'image', 'display_order', 'is_primary')
+        read_only_fields = ('id', 'image', 'display_order', 'is_primary')
+
+
+class ProductImageUploadSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(required=True)
+    display_order = serializers.IntegerField(default=0, min_value=0, required=False)
+    is_primary = serializers.BooleanField(default=False, required=False)
+
+    class Meta:
+        model = ProductImage
+        fields = ('id', 'image', 'display_order', 'is_primary')
+        read_only_fields = ('id',)
