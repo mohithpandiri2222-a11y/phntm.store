@@ -180,3 +180,26 @@ def product_images_view(request, product_id):
         },
         status=status.HTTP_400_BAD_REQUEST
     )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAdminUser])
+def delete_product_image_view(request, image_id):
+    try:
+        image = ProductImage.objects.get(id=image_id)
+    except ProductImage.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Image not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+    image.delete()
+    return Response(
+        {
+            "success": True,
+            "message": "Product image deleted successfully."
+        },
+        status=status.HTTP_200_OK
+    )
