@@ -7,11 +7,13 @@ from .views import (
     delete_product_view,
     product_images_view,
     delete_product_image_view,
+    search_products_view,
 )
 
 urlpatterns = [
     path('', create_product_view, name='product-create'),
     path('list/', list_products_view, name='product-list'),
+    path('search/', search_products_view, name='product-search'),
     path('<int:pk>/', retrieve_product_view, name='product-detail'),
     path('<int:pk>/update/', update_product_view, name='product-update'),
     path('<int:pk>/delete/', delete_product_view, name='product-delete'),

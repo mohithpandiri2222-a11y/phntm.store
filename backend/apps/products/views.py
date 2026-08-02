@@ -2,6 +2,7 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
+from django.db.models import Q
 from .models import Product, ProductImage
 from .serializers import ProductSerializer, ProductImageSerializer, ProductImageUploadSerializer
 
@@ -200,6 +201,27 @@ def delete_product_image_view(request, image_id):
         {
             "success": True,
             "message": "Product image deleted successfully."
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def search_products_view(request):
+    query = request.query_params.get('q', '')
+    if query:
+        products = Product.objects.filter(
+            Q(name__icontains=query) | Q(description__icontains=query)
+        )
+    else:
+        products = Product.objects.none()
+    serializer = ProductSerializer(products, many=True)
+    return Response(
+        {
+            "success": True,
+            "count": products.count(),
+            "products": serializer.data
         },
         status=status.HTTP_200_OK
     )
