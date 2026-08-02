@@ -225,3 +225,55 @@ def search_products_view(request):
         },
         status=status.HTTP_200_OK
     )
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def filter_products_view(request):
+    products = Product.objects.all()
+
+    # Filter by Collection (matches collection name case-insensitively)
+    collection = request.query_params.get('collection', '').strip()
+    if collection:
+        products = products.filter(category__collection__name__iexact=collection)
+
+    # Filter by Category (matches category name case-insensitively)
+    category = request.query_params.get('category', '').strip()
+    if category:
+        products = products.filter(category__name__iexact=category)
+
+    # Filter by minimum price
+    min_price = request.query_params.get('min_price', '').strip()
+    if min_price:
+        try:
+            products = products.filter(price__gte=float(min_price))
+        except ValueError:
+            pass  # ignore invalid min_price, results in unfiltered by this param
+
+    # Filter by maximum price
+    max_price = request.query_params.get('max_price', '').strip()
+    if max_price:
+        try:
+            products = products.filter(price__lte=float(max_price))
+        except ValueError:
+            pass  # ignore invalid max_price
+
+    # Sorting
+    sort = request.query_params.get('sort', '').strip()
+    valid_sort_options = {
+        'price': 'price',       # Low → High
+        '-price': '-price',     # High → Low
+        'newest': '-created_at', # Newest first
+    }
+    ordering = valid_sort_options.get(sort, '-created_at')  # default: newest first
+    products = products.order_by(ordering)
+
+    serializer = ProductSerializer(products, many=True)
+    return Response(
+        {
+            "success": True,
+            "count": products.count(),
+            "products": serializer.data
+        },
+        status=status.HTTP_200_OK
+    )
