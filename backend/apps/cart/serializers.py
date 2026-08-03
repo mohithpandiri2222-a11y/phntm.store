@@ -41,3 +41,7 @@ class CartSerializer(serializers.Serializer):
             for item in cart.items.select_related('product')
         )
         return '{:.2f}'.format(total)
+
+
+class UpdateCartItemSerializer(serializers.Serializer):
+    quantity = serializers.IntegerField(min_value=1)

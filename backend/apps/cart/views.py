@@ -3,7 +3,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Cart, CartItem
-from .serializers import AddToCartSerializer, CartSerializer
+from .serializers import AddToCartSerializer, CartSerializer, UpdateCartItemSerializer
 
 
 @api_view(['POST'])
@@ -62,6 +62,45 @@ def view_cart_view(request):
         {
             "success": True,
             **serializer.data
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_cart_item_view(request, item_id):
+    # Ownership-scoped lookup — prevents one user modifying another's cart
+    try:
+        cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+    except CartItem.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Cart item not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = UpdateCartItemSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {
+                "success": False,
+                "errors": serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    cart_item.quantity = serializer.validated_data['quantity']
+    cart_item.save()
+
+    from .serializers import CartItemSerializer
+    return Response(
+        {
+            "success": True,
+            "message": "Cart item updated successfully.",
+            "item": CartItemSerializer(cart_item).data
         },
         status=status.HTTP_200_OK
     )
