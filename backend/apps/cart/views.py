@@ -67,9 +67,7 @@ def view_cart_view(request):
     )
 
 
-@api_view(['PUT'])
-@permission_classes([IsAuthenticated])
-def update_cart_item_view(request, item_id):
+def _update_cart_item_logic(request, item_id):
     # Ownership-scoped lookup — prevents one user modifying another's cart
     try:
         cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
@@ -104,3 +102,47 @@ def update_cart_item_view(request, item_id):
         },
         status=status.HTTP_200_OK
     )
+
+
+def _remove_cart_item_logic(request, item_id):
+    # Ownership-scoped lookup — prevents one user deleting another's cart item
+    try:
+        cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+    except CartItem.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Cart item not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    cart_item.delete()
+    return Response(
+        {
+            "success": True,
+            "message": "Item removed from cart."
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_cart_item_view(request, item_id):
+    return _update_cart_item_logic(request, item_id)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_from_cart_view(request, item_id):
+    return _remove_cart_item_logic(request, item_id)
+
+
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def cart_item_detail_view(request, item_id):
+    if request.method == 'PUT':
+        return _update_cart_item_logic(request, item_id)
+    elif request.method == 'DELETE':
+        return _remove_cart_item_logic(request, item_id)
