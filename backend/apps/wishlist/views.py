@@ -69,3 +69,31 @@ def view_wishlist_view(request):
         },
         status=status.HTTP_200_OK
     )
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def remove_from_wishlist_view(request, item_id):
+    # Ownership-scoped lookup — prevents one user deleting another's wishlist item
+    try:
+        wishlist_item = WishlistItem.objects.get(
+            id=item_id,
+            wishlist__user=request.user
+        )
+    except WishlistItem.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Wishlist item not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    wishlist_item.delete()
+    return Response(
+        {
+            "success": True,
+            "message": "Item removed from wishlist."
+        },
+        status=status.HTTP_200_OK
+    )
