@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order
+from .models import Order, OrderItem
 
 
 class OrderHistorySerializer(serializers.ModelSerializer):
@@ -11,3 +11,25 @@ class OrderHistorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'total_amount', 'status', 'created_at']
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    """
+    Serializes snapshot fields on OrderItem — deliberately avoids nesting
+    the live Product object, so deleted products never break order records.
+    """
+    class Meta:
+        model = OrderItem
+        fields = ['product_name', 'price_at_purchase', 'quantity']
+
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    """
+    Full order detail: includes all summary fields plus nested OrderItems.
+    Used only for GET /api/orders/<id>/ — not the history list.
+    """
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'status', 'total_amount', 'created_at', 'items']

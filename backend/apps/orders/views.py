@@ -6,7 +6,7 @@ from django.db import transaction
 
 from apps.cart.models import Cart, CartItem
 from .models import Order, OrderItem
-from .serializers import OrderHistorySerializer
+from .serializers import OrderHistorySerializer, OrderDetailSerializer
 
 
 @api_view(['POST'])
@@ -101,6 +101,34 @@ def order_history_view(request):
             "success": True,
             "count": orders.count(),
             "orders": serializer.data
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def order_detail_view(request, order_id):
+    # Ownership-scoped lookup — prevents one user viewing another's order
+    try:
+        order = Order.objects.prefetch_related("items").get(
+            id=order_id,
+            user=request.user
+        )
+    except Order.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Order not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    serializer = OrderDetailSerializer(order)
+    return Response(
+        {
+            "success": True,
+            "order": serializer.data
         },
         status=status.HTTP_200_OK
     )
