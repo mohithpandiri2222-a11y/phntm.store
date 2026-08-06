@@ -23,7 +23,8 @@ class UserSerializer(serializers.ModelSerializer):
                 'error_messages': {
                     'unique': 'Username already exists.'
                 }
-            }
+            },
+            'email': {'required': True}
         }
         
     def validate_email(self, value):
