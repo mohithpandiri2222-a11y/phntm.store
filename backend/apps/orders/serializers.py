@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Order, OrderItem
+from .models import Order, OrderItem, STATUS_CHOICES
 
 
 class OrderHistorySerializer(serializers.ModelSerializer):
@@ -33,3 +33,13 @@ class OrderDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = ['id', 'status', 'total_amount', 'created_at', 'items']
+
+
+class UpdateOrderStatusSerializer(serializers.Serializer):
+    """
+    Input-only serializer for PATCH /api/orders/<id>/status/.
+    Validates that the incoming status is one of the allowed STATUS_CHOICES.
+    Deliberately separate from OrderDetailSerializer — validation vs. output
+    are different responsibilities.
+    """
+    status = serializers.ChoiceField(choices=[c[0] for c in STATUS_CHOICES])

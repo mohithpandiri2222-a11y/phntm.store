@@ -1,12 +1,12 @@
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from django.db import transaction
 
 from apps.cart.models import Cart, CartItem
 from .models import Order, OrderItem
-from .serializers import OrderHistorySerializer, OrderDetailSerializer
+from .serializers import OrderHistorySerializer, OrderDetailSerializer, UpdateOrderStatusSerializer
 
 
 @api_view(['POST'])
@@ -129,6 +129,49 @@ def order_detail_view(request, order_id):
         {
             "success": True,
             "order": serializer.data
+        },
+        status=status.HTTP_200_OK
+    )
+
+
+@api_view(['PATCH'])
+@permission_classes([IsAdminUser])
+def update_order_status_view(request, order_id):
+    # Find the order — any order, not scoped to user (admins manage all orders)
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return Response(
+            {
+                "success": False,
+                "message": "Order not found."
+            },
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    # Validate incoming status against STATUS_CHOICES
+    serializer = UpdateOrderStatusSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(
+            {
+                "success": False,
+                "errors": serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Update only the status field — nothing else changes
+    order.status = serializer.validated_data['status']
+    order.save()
+
+    return Response(
+        {
+            "success": True,
+            "message": "Order status updated successfully.",
+            "order": {
+                "id": order.id,
+                "status": order.status
+            }
         },
         status=status.HTTP_200_OK
     )
