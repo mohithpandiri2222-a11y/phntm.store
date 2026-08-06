@@ -6,6 +6,7 @@ from django.db import transaction
 
 from apps.cart.models import Cart, CartItem
 from .models import Order, OrderItem
+from .serializers import OrderHistorySerializer
 
 
 @api_view(['POST'])
@@ -83,4 +84,23 @@ def checkout_view(request):
             "order_id": order.id
         },
         status=status.HTTP_201_CREATED
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def order_history_view(request):
+    # Always scope to request.user — never expose another user's orders
+    orders = Order.objects.filter(
+        user=request.user
+    ).order_by("-created_at")
+
+    serializer = OrderHistorySerializer(orders, many=True)
+    return Response(
+        {
+            "success": True,
+            "count": orders.count(),
+            "orders": serializer.data
+        },
+        status=status.HTTP_200_OK
     )
